@@ -65,7 +65,10 @@ namespace Calcpad.Core.Python
                 }
                 var value = result.Assignments[result.Assignments.Count - 1].Value;
                 var rhs = result.RhsExpr;
-                bool showFormula = directive != "val" && rhs != null && !IsLiteralNode(rhs);
+                // Eco de la fórmula SOLO para expresiones matemáticas (A = b·h = 0.15).
+                // Para una LLAMADA opaca (uy = ops.nodeDisp(2,2)) se muestra solo "uy = valor".
+                bool showFormula = directive != "val" && rhs != null
+                                   && !IsLiteralNode(rhs) && !(rhs is CallExpr);
                 bool showValue = directive != "noc";
                 // Fórmula del lado derecho (estilo Calcpad: "A = b · h = 0.15").
                 if (showFormula)
