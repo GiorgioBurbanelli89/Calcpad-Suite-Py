@@ -3,7 +3,7 @@
 ; Variante Python-only: motor Python nativo en C# + fallback a python real.
 
 #define MyAppName "Calcpad Suite Py"
-#define MyAppVersion "1.0.6"
+#define MyAppVersion "1.0.7"
 #define MyAppPublisher "Jorge Burbano"
 #define MyAppURL "https://github.com/GiorgioBurbanelli89/Calcpad-Suite-Py"
 #define MyAppExeName "CalcpadSuitePy.exe"
