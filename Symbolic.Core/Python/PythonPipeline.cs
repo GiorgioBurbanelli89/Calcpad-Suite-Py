@@ -293,7 +293,7 @@ namespace Calcpad.Core.Python
             if (ln.StartsWith(HtmlMarker, StringComparison.Ordinal))
                 return ln.Substring(HtmlMarker.Length) + "\n";
             if (ln.TrimEnd().Length == 0) return "";
-            return "<p class=\"line\"><span class=\"eq\"><span style=\"white-space:pre-wrap\">" +
+            return "<p class=\"line\"><span class=\"eq\"><span style=\"white-space:pre;font-family:Consolas,'Courier New',monospace\">" +
                 WebUtility.HtmlEncode(ln) + "</span></span></p>\n";
         }
 
@@ -323,7 +323,7 @@ namespace Calcpad.Core.Python
                 if (text.Length == 0) return;
                 var t = text.ToString().TrimEnd('\n');
                 if (t.Length > 0)
-                    sb.Append("<p class=\"line\"><span class=\"eq\"><span style=\"white-space:pre-wrap\">")
+                    sb.Append("<p class=\"line\"><span class=\"eq\"><span style=\"white-space:pre;font-family:Consolas,'Courier New',monospace\">")
                       .Append(WebUtility.HtmlEncode(t))
                       .Append("</span></span></p>\n");
                 text.Clear();

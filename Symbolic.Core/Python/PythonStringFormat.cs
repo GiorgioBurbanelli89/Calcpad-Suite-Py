@@ -200,10 +200,11 @@ namespace Calcpad.Core.Python
                 i++;
                 if (i >= fmt.Length) break;
                 if (fmt[i] == '%') { sb.Append('%'); continue; }
-                // parse flags/width/.prec/type
-                int start = i;
-                while (i < fmt.Length && "+-# 0".IndexOf(fmt[i]) >= 0) i++;
-                while (i < fmt.Length && char.IsDigit(fmt[i])) i++;
+                // parse flags/width/.prec/type  (printf estilo C: [-+ 0#][width][.prec]type)
+                string flags = "";
+                while (i < fmt.Length && "+-# 0".IndexOf(fmt[i]) >= 0) { flags += fmt[i]; i++; }
+                int width = 0; bool hasWidth = false;
+                while (i < fmt.Length && char.IsDigit(fmt[i])) { width = width * 10 + (fmt[i] - '0'); i++; hasWidth = true; }
                 int prec = -1;
                 if (i < fmt.Length && fmt[i] == '.')
                 {
@@ -212,22 +213,41 @@ namespace Calcpad.Core.Python
                 }
                 char type = i < fmt.Length ? fmt[i] : 's';
                 object val = ai < args.Count ? args[ai++] : null;
-                string spec = type switch
+                bool leftAlign = flags.IndexOf('-') >= 0;
+                bool zeroPad = flags.IndexOf('0') >= 0 && !leftAlign;
+                string sgn = flags.IndexOf('+') >= 0 ? "+" : (flags.IndexOf(' ') >= 0 ? " " : "");
+                string body;
+                if (type == 'r') body = PyOps.Repr(val);
+                else if (type == 's')
                 {
-                    'd' or 'i' => "d",
-                    'f' or 'F' => (prec >= 0 ? "." + prec : "") + "f",
-                    'e' or 'E' => (prec >= 0 ? "." + prec : "") + type,
-                    'g' or 'G' => (prec >= 0 ? "." + prec : "") + type,
-                    'x' => "x",
-                    'X' => "X",
-                    'o' => "o",
-                    's' => prec >= 0 ? "" : "s",
-                    'r' => "",
-                    _ => "s"
-                };
-                if (type == 'r') sb.Append(PyOps.Repr(val));
-                else if (type == 's' && prec >= 0) sb.Append(PyOps.Str(val).Substring(0, Math.Min(prec, PyOps.Str(val).Length)));
-                else sb.Append(FormatSpec(val, spec));
+                    body = PyOps.Str(val);
+                    if (prec >= 0 && body.Length > prec) body = body.Substring(0, prec);
+                }
+                else
+                {
+                    string spec = sgn + type switch
+                    {
+                        'd' or 'i' => "d",
+                        'f' or 'F' => (prec >= 0 ? "." + prec : "") + "f",
+                        'e' or 'E' => (prec >= 0 ? "." + prec : "") + type,
+                        'g' or 'G' => (prec >= 0 ? "." + prec : "") + type,
+                        'x' => "x", 'X' => "X", 'o' => "o",
+                        _ => "s"
+                    };
+                    body = FormatSpec(val, spec);
+                }
+                if (hasWidth && body.Length < width)   // aplicar ANCHO + justificación (lo que faltaba)
+                {
+                    int pad = width - body.Length;
+                    if (leftAlign) body += new string(' ', pad);
+                    else if (zeroPad && type != 's' && type != 'r')
+                    {
+                        int s0 = (body.Length > 0 && (body[0] == '-' || body[0] == '+' || body[0] == ' ')) ? 1 : 0;
+                        body = body.Substring(0, s0) + new string('0', pad) + body.Substring(s0);
+                    }
+                    else body = new string(' ', pad) + body;
+                }
+                sb.Append(body);
             }
             return sb.ToString();
         }
