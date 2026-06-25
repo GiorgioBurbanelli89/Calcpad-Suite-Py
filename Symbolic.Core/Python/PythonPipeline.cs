@@ -203,9 +203,11 @@ namespace Calcpad.Core.Python
         // que al correr `python script.py` a mano.
         private static bool IsGuiScript(string source)
         {
+            // OJO: 'pyvista' (a secas) NO va aquí — se intercepta su show() y se EMBEBE
+            // como PNG (ver _pvPreamble). Solo los full-app Qt/tk/visores propios se detachan.
             string[] markers = {
                 "PyQt5", "PyQt6", "PySide2", "PySide6", "pyvistaqt", "QtInteractor",
-                ".exec_()", ".exec()", ".mainloop(", "QApplication", "pyvista", "vedo",
+                ".exec_()", ".exec()", ".mainloop(", "QApplication", "vedo",
                 "mayavi", "glfw", "pyglet"
             };
             foreach (var m in markers)
@@ -388,6 +390,7 @@ namespace Calcpad.Core.Python
                 if (seen.Add(n)) names.Add(n);
             }
             bool usesMpl = source.Contains("matplotlib");
+            bool usesPv = source.Contains("pyvista") && !source.Contains("pyvistaqt") && !source.Contains("QtInteractor");
             bool hasVisibleComments = source.Contains("#'") || source.Contains("#\"");
             // #noauto / #solografica → NO auto-renderizar variables (solo prints/figuras explícitos,
             // como en Python real). Son comentarios válidos de Python (no rompen).
@@ -402,10 +405,11 @@ namespace Calcpad.Core.Python
             // #nofig → Suite-Py NO embebe NINGUNA figura de matplotlib (en Python real igual abren ventana).
             bool noFig = usesMpl && source.Contains("#nofig");
             bool needsTransform = hasVisibleComments || hasShow || noPrint || source.Contains("#nosuite");
-            if ((names.Count == 0 || noAuto) && !usesMpl && !needsTransform) return source;
+            if ((names.Count == 0 || noAuto) && !usesMpl && !usesPv && !needsTransform) return source;
             var sb = new StringBuilder();
             sb.Append("_realprint = print\n");      // print REAL para uso interno (markers/figuras)
             if (usesMpl) sb.Append(_mplPreamble);   // captura figuras matplotlib (Agg + patch show)
+            if (usesPv) sb.Append(_pvPreamble);     // captura PyVista (Plotter.show → screenshot off-screen)
             sb.Append(_pyHelpers);                  // defs de _cpspy_* ANTES (para #show inline)
             if (noPrint) sb.Append("print = lambda *a, **k: None  # #noprint: Suite-Py omite prints del usuario\n");
             if (noFig) sb.Append("_cpspy_flush_figs = lambda: None  # #nofig: Suite-Py no embebe figuras\n");
@@ -535,6 +539,28 @@ try:
     _pltcap.show = lambda *a, **k: _cpspy_flush_figs()
 except Exception:
     def _cpspy_flush_figs(): pass
+";
+
+        // Captura de PyVista: patchea Plotter.show() → render OFF-SCREEN → PNG embebido
+        // (__CPSPY_IMG__), igual que matplotlib. Así un script PyVista se EMBEBE en el
+        // worksheet en vez de abrir ventana. (pyvistaqt/PyQt full-app sí abre ventana.)
+        private const string _pvPreamble = @"
+try:
+    import pyvista as _pvcap
+    _pvcap.OFF_SCREEN = True
+    import io as _iopv, base64 as _b64pv
+    from PIL import Image as _Impv
+    def _cpspy_pv_show(self, *a, **k):
+        try:
+            for _kk in ('interactive','auto_close','interactive_update','full_screen'): k.pop(_kk, None)
+            _img = self.screenshot(return_img=True)
+            _bf = _iopv.BytesIO(); _Impv.fromarray(_img).save(_bf, format='PNG'); _bf.seek(0)
+            _realprint('__CPSPY_IMG__:' + _b64pv.b64encode(_bf.read()).decode())
+        except Exception as _e:
+            _realprint('__CPSPY_HTML__:<p class=""err"">PyVista no se pudo capturar: ' + str(_e) + '</p>')
+    _pvcap.Plotter.show = _cpspy_pv_show
+except Exception:
+    pass
 ";
 
         private const string _pyHelpers = @"
