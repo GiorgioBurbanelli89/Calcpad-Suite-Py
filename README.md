@@ -11,11 +11,27 @@ system `python` for `numpy` / `scipy` / `matplotlib` / `plotly`.
 > Same renderized HTML/PDF/DOCX output as Calcpad, same auto-run-on-save,
 > same template — only the input syntax is Python.
 
-📥 **Download:** [CalcpadSuitePy-Setup-1.0.9.exe](https://github.com/GiorgioBurbanelli89/Calcpad-Suite-Py/releases) (self-contained, no .NET required)
+📥 **Download:** [CalcpadSuitePy-Setup-1.0.10.exe](https://github.com/GiorgioBurbanelli89/Calcpad-Suite-Py/releases) (self-contained, no .NET required)
 📁 Ejemplos `.py` bundleados con el installer (se copian a `Documents\Calcpad Suite Py\Examples\`).
 
 > ℹ️ El motor MATLAB (`.m`) vive en el proyecto hermano **Calcpad Lab** — ver
 > [`README-CalcpadLab.md`](./README-CalcpadLab.md). Este repo es la variante **Python-only**.
+
+---
+
+## Novedades — Control de auto-render en el motor nativo (v1.0.10, 2026-06-29)
+
+**`#noauto` y `#solografica` ahora también funcionan en el motor Python nativo** (antes solo
+en los scripts que corrían sobre Python real). Para scripts "puros" (escalares, `for`/`while`/`if`,
+fórmulas, sin imports):
+
+- **`#noauto`** → el reporte deja de auto-renderizar cada variable; solo aparece lo que pidas
+  explícitamente: texto (`#'`/`#"`), strings sueltos, `print()`, figuras y lo marcado con `#show`.
+- **`#solografica`** → mismo efecto enfocado en dejar solo la gráfica.
+- **`#show variable`** muestra una variable concreta **inline**, justo donde la marcás.
+
+Así controlás exactamente qué entra al worksheet sin tener que prefijar todo con `_` para ocultarlo.
+Cambios en `Symbolic.Core/Python/PythonPipeline.cs` y `PythonHtmlWriter.cs`.
 
 ---
 
@@ -108,7 +124,7 @@ que Calcpad pero con Python.
 
 ## Instalación
 
-1. Descargar **CalcpadSuitePy-Setup-1.0.9.exe** desde los
+1. Descargar **CalcpadSuitePy-Setup-1.0.10.exe** desde los
    [releases del repo](https://github.com/GiorgioBurbanelli89/Calcpad-Suite-Py/releases).
 2. Doble-click → aceptar UAC → seguir el wizard (acepta asociación `.py` para abrir scripts con doble-click).
 3. Al primer arranque, los ejemplos se copian a `Documents\Calcpad Suite Py\Examples\`.

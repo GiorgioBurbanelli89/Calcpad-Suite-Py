@@ -105,12 +105,15 @@ namespace Calcpad.Core.Python
             return string.Empty;
         }
 
-        // `#show texto` → el texto se muestra como caption a la derecha del valor (como el
-        // comentario inline de Calcpad). Con `#hide` no se llega acá (no se renderiza nada).
+        // Caption a la derecha del valor (como el `'comentario` inline de Calcpad puro):
+        //   `a = 6  #show texto`  → "a = 6   texto"
+        //   `a = 6  #' texto`     → "a = 6   texto"   (inline #' = etiqueta, estilo Calcpad)
+        // Con `#hide` no se llega acá (no se renderiza nada).
         private static void AppendCaption(StringBuilder sb, string directive, string directiveText)
         {
-            if (directive == "show" && !string.IsNullOrWhiteSpace(directiveText))
-                sb.Append($"<span style=\"margin-left:1.2em\">{WebUtility.HtmlEncode(directiveText.Trim())}</span>");
+            if ((directive == "show" || directive == "text" || directive == "heading")
+                && !string.IsNullOrWhiteSpace(directiveText))
+                sb.Append($"<span style=\"margin-left:1.2em;color:#0a7f3f;font-style:italic\">{WebUtility.HtmlEncode(directiveText.Trim())}</span>");
         }
 
         private static bool IsLiteralNode(PyNode n) =>

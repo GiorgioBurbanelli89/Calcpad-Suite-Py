@@ -36,9 +36,12 @@ namespace Calcpad.Core.Python
         /// <summary>Última ejecución usó python real (subprocess).</summary>
         public bool LastRanWithRealPython { get; private set; }
 
+        private bool _noAutoNative;   // #noauto/#solografica en el motor nativo: no auto-render de variables
+
         public string Run(string source)
         {
             LastRanWithRealPython = false;
+            _noAutoNative = source.Contains("#noauto") || source.Contains("#solografica");
 
             // Directiva por-script `#venv`/`#env`: si el .py declara su entorno,
             // ese python.exe tiene prioridad sobre la elección del menú, SOLO para
@@ -167,8 +170,15 @@ namespace Calcpad.Core.Python
                 // Volcar print() antes del render del statement.
                 FlushDisp(stmtLine);
 
+                // #noauto → NO auto-renderizar variables: ejecuta pero solo muestra texto
+                // (#'/#" comentarios, strings sueltos), prints, figuras y lo marcado con #show.
+                bool _isText = stmt is CommentStmt
+                               || (stmt is ExprStmt _es && (_es.Expr is StringLit || _es.Expr is FStringLit));
+                bool _explicit = directive == "show" || directive == "text" || directive == "heading";
+                bool _autoSuppressed = _noAutoNative && !_isText && !_explicit;
+
                 // #hide → se ejecuta (ya se ejecutó) pero NO se muestra nada.
-                if (result.Display && directive != "hide")
+                if (result.Display && directive != "hide" && !_autoSuppressed)
                 {
                     try
                     {
